@@ -4,30 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MedReg KZ — Реестр медицинских организаций</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <style>
-    :root {
-      --bg: #18181b;
-      --card: #27272a;
-      --text: #e4e4e7;
-      --accent: #10b981;
-    }
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      margin: 0;
-      line-height: 1.6;
-    }
-    .card {
-      background: var(--card);
-      border: 1px solid #3f3f46;
-      transition: all 0.3s ease;
-    }
-    .card:hover {
-      transform: translateY(-8px);
-      border-color: var(--accent);
-    }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card:hover { transform: translateY(-8px); }
     .modal {
       animation: modalPop 0.3s ease forwards;
     }
@@ -37,14 +19,15 @@
     }
   </style>
 </head>
-<body class="min-h-screen">
+<body class="bg-zinc-950 text-zinc-200 min-h-screen">
 
+  <!-- HEADER -->
   <header class="border-b border-zinc-800 bg-zinc-950 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-4xl">🩺</div>
+        <div class="w-11 h-11 bg-emerald-600 rounded-2xl flex items-center justify-center text-3xl">🩺</div>
         <div>
-          <h1 class="text-3xl font-semibold">MedReg KZ</h1>
+          <h1 class="text-3xl font-semibold tracking-tight">MedReg KZ</h1>
           <p class="text-zinc-500 text-sm">Реестр медицинских организаций Казахстана</p>
         </div>
       </div>
@@ -54,7 +37,7 @@
 
   <div class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-4 gap-8">
 
-    <!-- Фильтры -->
+    <!-- ФИЛЬТРЫ -->
     <div class="lg:col-span-1">
       <div class="bg-zinc-900 rounded-3xl p-6 border border-zinc-800 sticky top-24">
         <h2 class="font-semibold text-lg mb-6 flex items-center gap-3">
@@ -68,7 +51,7 @@
 
           <div>
             <label class="block text-zinc-400 text-sm mb-2">Город</label>
-            <select id="cityFilter" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4">
+            <select id="cityFilter" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none">
               <option value="">Все города</option>
               <option value="Астана">Астана</option>
               <option value="Алматы">Алматы</option>
@@ -80,7 +63,7 @@
 
           <div>
             <label class="block text-zinc-400 text-sm mb-2">Специализация</label>
-            <select id="specFilter" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4">
+            <select id="specFilter" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none">
               <option value="">Все специализации</option>
               <option value="Многопрофильная">Многопрофильная</option>
               <option value="Кардиология">Кардиология</option>
@@ -94,41 +77,46 @@
       </div>
     </div>
 
-    <!-- Список организаций -->
+    <!-- СПИСОК -->
     <div class="lg:col-span-3">
       <h2 id="resultsCount" class="text-2xl font-semibold mb-8">Найдено: 68 организаций</h2>
       <div id="organizationsList" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
     </div>
   </div>
 
-  <!-- Модальное окно -->
+  <!-- MODAL (Детальная информация) -->
   <div id="detailModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100]">
     <div class="modal bg-zinc-900 rounded-3xl max-w-2xl w-full mx-4 overflow-hidden">
-      <div class="p-8" id="modalContent"></div>
+      <div class="p-8" id="modalContent">
+        <!-- Контент загружается через JS -->
+      </div>
       <div class="border-t border-zinc-800 p-4 flex justify-end">
-        <button onclick="closeModal()" class="px-8 py-3 text-zinc-400 hover:text-white">Закрыть</button>
+        <button onclick="closeModal()" 
+                class="px-8 py-3 text-zinc-400 hover:text-white transition">Закрыть</button>
       </div>
     </div>
   </div>
 
   <script>
     const organizations = [
-      { id: 1, name: "Национальный научный центр материнства и детства", city: "Астана", type: "gos", spec: "Педиатрия", address: "ул. Туркестан, 32", phone: "+7 (7172) 70-10-00", rating: 4.8, description: "Крупнейший центр по оказанию специализированной помощи женщинам и детям." },
-      { id: 2, name: "Клиника «Медицина»", city: "Алматы", type: "private", spec: "Многопрофильная", address: "проспект Достык, 85", phone: "+7 (727) 255-55-55", rating: 4.9, description: "Современная многопрофильная клиника с высоким уровнем сервиса." },
-      { id: 3, name: "Актюбинская областная многопрофильная больница", city: "Актобе", type: "gos", spec: "Многопрофильная", address: "ул. Абая, 101", phone: "+7 (7132) 55-00-00", rating: 4.5, description: "Главная многопрофильная больница Актюбинской области." },
-      { id: 4, name: "Центр кардиологии и сердечно-сосудистой хирургии", city: "Астана", type: "gos", spec: "Кардиология", address: "ул. Курганская, 12", phone: "+7 (7172) 79-00-00", rating: 4.7, description: "Специализированный кардиологический центр." },
-      { id: 5, name: "Стоматологическая клиника «Dental Art»", city: "Алматы", type: "private", spec: "Стоматология", address: "ул. Байтурсынова, 45", phone: "+7 (727) 300-40-40", rating: 4.9, description: "Современная стоматология премиум-класса." },
-      { id: 6, name: "Шымкентская городская больница №1", city: "Шымкент", type: "gos", spec: "Многопрофильная", address: "ул. Тауке-хана, 78", phone: "+7 (7252) 53-00-00", rating: 4.3, description: "Одна из ведущих больниц Южного региона." },
-      { id: 7, name: "Онкологический центр «Астана»", city: "Астана", type: "gos", spec: "Онкология", address: "ул. Мангилик Ел, 20", phone: "+7 (7172) 70-50-00", rating: 4.6, description: "Современный онкологический центр." },
-      { id: 8, name: "Клиника неврологии и нейрохирургии", city: "Алматы", type: "private", spec: "Неврология", address: "ул. Курмангазы, 112", phone: "+7 (727) 220-00-11", rating: 4.8, description: "Экспертная помощь при неврологических заболеваниях." }
+      { id: 1, name: "Национальный научный центр материнства и детства", city: "Астана", type: "gos", spec: "Педиатрия", address: "ул. Туркестан, 32", phone: "+7 (7172) 70-10-00", email: "info@nncmd.kz", website: "https://nncmd.kz", rating: 4.8, description: "Крупнейший центр по оказанию специализированной помощи женщинам и детям в Казахстане." },
+      { id: 2, name: "Клиника «Медицина»", city: "Алматы", type: "private", spec: "Многопрофильная", address: "проспект Достык, 85", phone: "+7 (727) 255-55-55", email: "info@medicina.kz", website: "https://medicina.kz", rating: 4.9, description: "Современная многопрофильная клиника с высокотехнологичным оборудованием." },
+      { id: 3, name: "Актюбинская областная многопрофильная больница", city: "Актобе", type: "gos", spec: "Многопрофильная", address: "ул. Абая, 101", phone: "+7 (7132) 55-00-00", rating: 4.5, description: "Главная больница Актюбинской области с широким спектром услуг." },
+      { id: 4, name: "Центр кардиологии и сердечно-сосудистой хирургии", city: "Астана", type: "gos", spec: "Кардиология", address: "ул. Курганская, 12", phone: "+7 (7172) 79-00-00", rating: 4.7, description: "Специализированный центр по лечению заболеваний сердца и сосудов." },
+      { id: 5, name: "Стоматологическая клиника «Dental Art»", city: "Алматы", type: "private", spec: "Стоматология", address: "ул. Байтурсынова, 45", phone: "+7 (727) 300-40-40", rating: 4.9, description: "Современная стоматология с использованием цифровых технологий." },
+      { id: 6, name: "Шымкентская городская больница №1", city: "Шымкент", type: "gos", spec: "Многопрофильная", address: "ул. Тауке-хана, 78", phone: "+7 (7252) 53-00-00", rating: 4.3, description: "Одна из крупнейших больниц Южного Казахстана." },
+      { id: 7, name: "Онкологический центр «Астана»", city: "Астана", type: "gos", spec: "Онкология", address: "ул. Мангилик Ел, 20", phone: "+7 (7172) 70-50-00", rating: 4.6, description: "Специализированный онкологический центр с современным оборудованием." },
+      { id: 8, name: "Клиника неврологии и нейрохирургии", city: "Алматы", type: "private", spec: "Неврология", address: "ул. Курмангазы, 112", phone: "+7 (727) 220-00-11", rating: 4.8, description: "Экспертная помощь при заболеваниях нервной системы." },
     ];
+
+    let currentTypeFilter = "";
 
     function renderOrganizations(filtered) {
       const container = document.getElementById('organizationsList');
       container.innerHTML = filtered.map(org => `
-        <div class="card rounded-3xl p-6">
+        <div class="card bg-zinc-900 border border-zinc-800 rounded-3xl p-6 hover:border-emerald-600">
           <h3 class="text-xl font-semibold mb-2">${org.name}</h3>
-          <p class="text-zinc-400">${org.address} • ${org.city}</p>
+          <p class="text-zinc-400 text-sm">${org.address} • ${org.city}</p>
           
           <div class="flex gap-2 mt-4">
             <span class="px-4 py-1 text-xs bg-zinc-800 rounded-2xl">${org.spec}</span>
@@ -138,9 +126,11 @@
           </div>
 
           <div class="mt-6 flex justify-between items-center">
-            <span class="text-emerald-400">★ ${org.rating}</span>
+            <div>
+              <span class="text-emerald-400">★ ${org.rating}</span>
+            </div>
             <button onclick="showDetail(${org.id})" 
-                    class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-2xl text-sm font-medium">
+                    class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-2xl transition">
               Подробнее
             </button>
           </div>
@@ -152,16 +142,45 @@
       const org = organizations.find(o => o.id === id);
       if (!org) return;
 
-      document.getElementById('modalContent').innerHTML = `
+      const modalContent = document.getElementById('modalContent');
+      modalContent.innerHTML = `
         <h2 class="text-2xl font-semibold mb-2">${org.name}</h2>
         <p class="text-emerald-400 mb-6">${org.city} • ${org.spec}</p>
         
-        <div class="space-y-4 mb-8">
-          <div><span class="text-zinc-400">Адрес:</span> ${org.address}</div>
-          <div><span class="text-zinc-400">Телефон:</span> ${org.phone}</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div>
+            <p class="text-zinc-400 text-sm">Адрес</p>
+            <p class="font-medium">${org.address}</p>
+          </div>
+          <div>
+            <p class="text-zinc-400 text-sm">Телефон</p>
+            <p class="font-medium">${org.phone}</p>
+          </div>
+          ${org.email ? `
+          <div>
+            <p class="text-zinc-400 text-sm">Email</p>
+            <p class="font-medium">${org.email}</p>
+          </div>` : ''}
+          ${org.website ? `
+          <div>
+            <p class="text-zinc-400 text-sm">Сайт</p>
+            <a href="${org.website}" target="_blank" class="text-emerald-400 hover:underline">Перейти на сайт →</a>
+          </div>` : ''}
         </div>
-        
-        <p class="text-zinc-300 leading-relaxed">${org.description}</p>
+
+        <div class="mb-8">
+          <p class="text-zinc-400 text-sm mb-2">О клинике</p>
+          <p class="text-zinc-300 leading-relaxed">${org.description}</p>
+        </div>
+
+        <!-- Карта 2ГИС -->
+        <div class="mb-6">
+          <p class="text-zinc-400 text-sm mb-3">Расположение на карте</p>
+          <div class="aspect-video bg-zinc-950 rounded-2xl overflow-hidden border border-zinc-700">
+            <iframe src="https://2gis.kz/astana/search/${encodeURIComponent(org.name)}" 
+                    width="100%" height="100%" style="border:0;" allowfullscreen></iframe>
+          </div>
+        </div>
       `;
 
       document.getElementById('detailModal').classList.remove('hidden');
@@ -175,7 +194,7 @@
     }
 
     function filterOrganizations() {
-      const search = document.getElementById('searchInput').value.toLowerCase();
+      const search = document.getElementById('searchInput').value.toLowerCase().trim();
       const city = document.getElementById('cityFilter').value;
       const spec = document.getElementById('specFilter').value;
 
@@ -196,6 +215,11 @@
       document.getElementById('searchInput').addEventListener('input', filterOrganizations);
       document.getElementById('cityFilter').addEventListener('change', filterOrganizations);
       document.getElementById('specFilter').addEventListener('change', filterOrganizations);
+    });
+
+    // Закрытие модального окна при клике вне его
+    document.getElementById('detailModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
     });
   </script>
 </body>
