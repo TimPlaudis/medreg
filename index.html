@@ -1,0 +1,602 @@
+<h2 class="sr-only">Реестр медицинских организаций Казахстана — интерактивный MVP</h2>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); color: var(--color-text-primary); }
+
+  .app { display: flex; flex-direction: column; min-height: 600px; }
+
+  .header {
+    background: #0A2540;
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 16px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 8px; }
+  .logo-mark {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: #1D9E75; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 500; color: #fff;
+  }
+  .logo-text { font-size: 15px; font-weight: 500; color: #fff; letter-spacing: -0.3px; }
+  .logo-sub { font-size: 11px; color: rgba(255,255,255,0.5); }
+  .header-search {
+    flex: 1; display: flex; align-items: center;
+    background: rgba(255,255,255,0.1); border-radius: 8px;
+    border: 0.5px solid rgba(255,255,255,0.15); padding: 0 12px; gap: 8px;
+  }
+  .header-search input {
+    background: transparent; border: none; outline: none;
+    color: #fff; font-size: 14px; width: 100%; padding: 8px 0;
+    font-family: var(--font-sans);
+  }
+  .header-search input::placeholder { color: rgba(255,255,255,0.4); }
+  .search-icon { color: rgba(255,255,255,0.5); font-size: 14px; }
+  .header-stats { color: rgba(255,255,255,0.6); font-size: 12px; white-space: nowrap; }
+
+  .main { display: flex; flex: 1; }
+
+  .sidebar {
+    width: 260px; min-width: 260px;
+    border-right: 0.5px solid var(--color-border-tertiary);
+    padding: 16px; display: flex; flex-direction: column; gap: 16px;
+    background: var(--color-background-secondary);
+    overflow-y: auto; max-height: calc(100vh - 60px);
+  }
+
+  .filter-section { display: flex; flex-direction: column; gap: 8px; }
+  .filter-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+  
+  select {
+    width: 100%; padding: 8px 10px; border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary); color: var(--color-text-primary);
+    font-size: 13px; font-family: var(--font-sans); cursor: pointer;
+  }
+
+  .chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 4px 10px; border-radius: 20px; font-size: 12px; cursor: pointer;
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary); color: var(--color-text-secondary);
+    transition: all 0.15s;
+  }
+  .chip.active {
+    background: #0A2540; color: #fff; border-color: #0A2540;
+  }
+  .chip:hover:not(.active) { border-color: var(--color-border-primary); color: var(--color-text-primary); }
+
+  .stat-block {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md); padding: 12px;
+  }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .stat-row:last-child { margin-bottom: 0; }
+  .stat-key { font-size: 12px; color: var(--color-text-secondary); }
+  .stat-val { font-size: 13px; font-weight: 500; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+  .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .view-tabs {
+    display: flex; align-items: center; gap: 0;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    padding: 0 16px; background: var(--color-background-primary);
+  }
+  .view-tab {
+    padding: 12px 16px; font-size: 13px; cursor: pointer;
+    border-bottom: 2px solid transparent; color: var(--color-text-secondary);
+    margin-bottom: -0.5px;
+  }
+  .view-tab.active { color: #0A2540; border-bottom-color: #1D9E75; font-weight: 500; }
+  .results-count { margin-left: auto; font-size: 12px; color: var(--color-text-secondary); padding: 12px 0; }
+
+  .sort-select {
+    margin-left: 12px;
+    padding: 4px 8px; border-radius: 6px; font-size: 12px;
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-primary); color: var(--color-text-secondary);
+    font-family: var(--font-sans); cursor: pointer;
+  }
+
+  .list-view { overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+
+  .org-card {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg); padding: 14px 16px;
+    cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+    display: grid; grid-template-columns: 1fr auto; gap: 8px;
+  }
+  .org-card:hover { border-color: var(--color-border-primary); }
+  .org-card.selected { border-color: #1D9E75; border-width: 1px; }
+
+  .org-name { font-size: 14px; font-weight: 500; margin-bottom: 4px; line-height: 1.3; }
+  .org-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500;
+  }
+  .badge-pub { background: #E6F1FB; color: #185FA5; }
+  .badge-priv { background: #E1F5EE; color: #0F6E56; }
+  .badge-spec { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+
+  .org-addr { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
+  .org-specs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .spec-tag { font-size: 11px; color: var(--color-text-secondary); background: var(--color-background-tertiary); padding: 2px 6px; border-radius: 4px; }
+
+  .org-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .rating { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; }
+  .star { color: #EF9F27; font-size: 13px; }
+  .reviews { font-size: 11px; color: var(--color-text-secondary); }
+  .phone-btn { font-size: 11px; color: #0F6E56; background: #E1F5EE; padding: 4px 8px; border-radius: 6px; border: none; cursor: pointer; }
+
+  .map-view { flex: 1; background: var(--color-background-secondary); position: relative; overflow: hidden; }
+
+  .kz-map {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+
+  .map-placeholder {
+    background: #E6F1FB;
+    border-radius: var(--border-radius-lg);
+    padding: 40px;
+    text-align: center;
+    border: 1px dashed #378ADD;
+  }
+
+  .detail-panel {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 360px;
+    background: var(--color-background-primary);
+    border-left: 0.5px solid var(--color-border-tertiary);
+    overflow-y: auto; z-index: 10; transform: translateX(100%);
+    transition: transform 0.2s;
+  }
+  .detail-panel.open { transform: translateX(0); }
+
+  .detail-header { background: #0A2540; padding: 20px; color: #fff; }
+  .detail-close { position: absolute; right: 16px; top: 16px; background: rgba(255,255,255,0.15); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; }
+  .detail-type-badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; display: inline-block; margin-bottom: 8px; }
+  .detail-name { font-size: 18px; font-weight: 500; line-height: 1.3; margin-bottom: 4px; }
+  .detail-city { font-size: 13px; color: rgba(255,255,255,0.6); }
+  .detail-rating { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .detail-stars { color: #EF9F27; font-size: 16px; }
+  .detail-score { font-size: 20px; font-weight: 500; }
+  .detail-reviews { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+  .detail-body { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  .detail-section { border-top: 0.5px solid var(--color-border-tertiary); padding-top: 14px; }
+  .detail-section:first-child { border-top: none; padding-top: 0; }
+  .detail-section-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .detail-row { display: flex; gap: 8px; font-size: 13px; margin-bottom: 6px; }
+  .detail-row-key { color: var(--color-text-secondary); min-width: 80px; }
+  .detail-row-val { color: var(--color-text-primary); }
+  .spec-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .spec-pill { background: #E1F5EE; color: #0F6E56; font-size: 12px; padding: 4px 10px; border-radius: 20px; }
+  .hours-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 12px; }
+  .hours-row { display: flex; gap: 6px; }
+  .hours-day { color: var(--color-text-secondary); width: 36px; }
+  .hours-time { color: var(--color-text-primary); }
+  .cta-btn {
+    width: 100%; padding: 12px; border-radius: var(--border-radius-md); border: none;
+    font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--font-sans);
+  }
+  .cta-primary { background: #0A2540; color: #fff; margin-bottom: 8px; }
+  .cta-secondary { background: #E1F5EE; color: #0F6E56; }
+
+  .map-pin {
+    position: absolute; cursor: pointer; transform: translate(-50%, -50%);
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  }
+  .pin-dot {
+    width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    transition: transform 0.15s;
+  }
+  .pin-dot:hover { transform: scale(1.4); }
+  .pin-dot.pub { background: #185FA5; }
+  .pin-dot.priv { background: #1D9E75; }
+  .pin-dot.selected { transform: scale(1.6); }
+
+  .map-svg { width: 100%; height: 100%; }
+
+  .empty { text-align: center; padding: 60px 20px; color: var(--color-text-secondary); }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; }
+
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .detail-panel { width: 100%; }
+  }
+</style>
+
+<div class="app">
+  <div class="header">
+    <div class="logo">
+      <div class="logo-mark">М</div>
+      <div>
+        <div class="logo-text">МедРеестр.kz</div>
+        <div class="logo-sub">Казахстан</div>
+      </div>
+    </div>
+    <div class="header-search">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Название клиники, специализация, адрес..." />
+    </div>
+    <div class="header-stats" id="headerStats">50 организаций</div>
+  </div>
+
+  <div class="main">
+    <div class="sidebar">
+      <div class="filter-section">
+        <div class="filter-label">Город</div>
+        <select id="cityFilter">
+          <option value="">Все города</option>
+          <option>Астана</option>
+          <option>Алматы</option>
+          <option>Шымкент</option>
+          <option>Қарағанды</option>
+          <option>Актобе</option>
+          <option>Тараз</option>
+          <option>Павлодар</option>
+          <option>Атырау</option>
+          <option>Семей</option>
+          <option>Өскемен</option>
+        </select>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Тип организации</div>
+        <div class="chip-group" id="typeFilter">
+          <div class="chip active" data-val="">Все</div>
+          <div class="chip" data-val="Государственная">Гос.</div>
+          <div class="chip" data-val="Частная">Частная</div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Специализация</div>
+        <div class="chip-group" id="specFilter">
+          <div class="chip active" data-val="">Все</div>
+          <div class="chip" data-val="Многопрофильная">Многопроф.</div>
+          <div class="chip" data-val="Кардиология">Кардиология</div>
+          <div class="chip" data-val="Онкология">Онкология</div>
+          <div class="chip" data-val="Стоматология">Стоматология</div>
+          <div class="chip" data-val="Педиатрия">Педиатрия</div>
+          <div class="chip" data-val="Хирургия">Хирургия</div>
+          <div class="chip" data-val="Неврология">Неврология</div>
+          <div class="chip" data-val="Гинекология">Гинекология</div>
+          <div class="chip" data-val="Офтальмология">Офтальмология</div>
+          <div class="chip" data-val="Травматология">Травматология</div>
+          <div class="chip" data-val="Психиатрия">Психиатрия</div>
+          <div class="chip" data-val="Дерматология">Дерматология</div>
+          <div class="chip" data-val="Урология">Урология</div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Статистика выборки</div>
+        <div class="stat-block" id="statBlock"></div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="view-tabs">
+        <div class="view-tab active" id="tabList" onclick="switchView('list')">Список</div>
+        <div class="view-tab" id="tabMap" onclick="switchView('map')">Карта</div>
+        <span class="results-count" id="resultsCount"></span>
+        <select class="sort-select" id="sortSelect">
+          <option value="rating">По рейтингу</option>
+          <option value="name">По названию</option>
+          <option value="reviews">По отзывам</option>
+        </select>
+      </div>
+
+      <div id="listView" class="list-view"></div>
+
+      <div id="mapView" class="map-view" style="display:none; position:relative;">
+        <svg id="mapSvg" class="map-svg" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+          <rect width="800" height="400" fill="#D6EAF8" rx="8"/>
+          <path d="M 60 200 Q 100 120 180 100 Q 250 80 320 110 Q 400 90 480 115 Q 560 100 630 130 Q 720 160 750 220 Q 740 280 680 300 Q 600 330 520 310 Q 440 340 360 310 Q 280 340 200 300 Q 120 280 80 240 Z" fill="#C8E6C9" stroke="#A5D6A7" stroke-width="1.5"/>
+          <text x="200" y="200" font-size="10" fill="#666" font-family="sans-serif" opacity="0.6">Казахстан</text>
+          <text x="420" y="175" font-size="9" fill="#666" font-family="sans-serif" opacity="0.5">Карагандинская</text>
+          <text x="290" y="145" font-size="9" fill="#666" font-family="sans-serif" opacity="0.5">Акмолинская</text>
+          <g id="mapPins"></g>
+        </svg>
+        <div class="detail-panel" id="detailPanel"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ORGS = [
+  {id:1,name:"Национальный кардиологический центр",type:"Государственная",city:"Астана",addr:"пр. Туран, 38",phone:"+7 7172 70-01-11",specs:["Кардиология","Хирургия","Интенсивная терапия"],rating:4.7,reviews:312,lat:51,lng:71.4,license:"МО-ГОС-0001",hours:{Пн:"08:00-20:00",Вт:"08:00-20:00",Ср:"08:00-20:00",Чт:"08:00-20:00",Пт:"08:00-18:00",Сб:"09:00-15:00",Вс:"Выходной"},website:"nkc.kz"},
+  {id:2,name:"Клиника «Медикер»",type:"Частная",city:"Астана",addr:"ул. Иманова, 13",phone:"+7 7172 44-55-66",specs:["Многопрофильная","Педиатрия","Гинекология"],rating:4.5,reviews:187,lat:51.18,lng:71.45,license:"МО-ЧАС-0002",hours:{Пн:"07:00-22:00",Вт:"07:00-22:00",Ср:"07:00-22:00",Чт:"07:00-22:00",Пт:"07:00-22:00",Сб:"08:00-20:00",Вс:"09:00-18:00"},website:"mediker.kz"},
+  {id:3,name:"Городская больница №1 Астаны",type:"Государственная",city:"Астана",addr:"ул. Сейфуллина, 112",phone:"+7 7172 32-11-00",specs:["Многопрофильная","Хирургия","Травматология","Неврология"],rating:3.9,reviews:521,lat:51.15,lng:71.48,license:"МО-ГОС-0003",hours:{Пн:"Круглосуточно",Вт:"Круглосуточно",Ср:"Круглосуточно",Чт:"Круглосуточно",Пт:"Круглосуточно",Сб:"Круглосуточно",Вс:"Круглосуточно"},website:""},
+  {id:4,name:"Клиника «Нур-Медикал»",type:"Частная",city:"Астана",addr:"пр. Кабанбай батыра, 11/2",phone:"+7 7172 91-00-22",specs:["Стоматология","Офтальмология"],rating:4.8,reviews:98,lat:51.12,lng:71.42,license:"МО-ЧАС-0004",hours:{Пн:"09:00-21:00",Вт:"09:00-21:00",Ср:"09:00-21:00",Чт:"09:00-21:00",Пт:"09:00-20:00",Сб:"10:00-18:00",Вс:"Выходной"},website:"nurmedical.kz"},
+  {id:5,name:"Республиканский онкологический центр",type:"Государственная",city:"Астана",addr:"пр. Абылай хана, 90",phone:"+7 7172 57-77-10",specs:["Онкология","Хирургия","Лучевая терапия"],rating:4.4,reviews:203,lat:51.2,lng:71.38,license:"МО-ГОС-0005",hours:{Пн:"08:00-18:00",Вт:"08:00-18:00",Ср:"08:00-18:00",Чт:"08:00-18:00",Пт:"08:00-17:00",Сб:"Выходной",Вс:"Выходной"},website:"roc.kz"},
+  {id:6,name:"МЦ «Семейный доктор»",type:"Частная",city:"Астана",addr:"ул. Достык, 5",phone:"+7 7172 55-88-33",specs:["Педиатрия","Терапия","Гинекология"],rating:4.6,reviews:142,lat:51.17,lng:71.5,license:"МО-ЧАС-0006",hours:{Пн:"08:00-21:00",Вт:"08:00-21:00",Ср:"08:00-21:00",Чт:"08:00-21:00",Пт:"08:00-21:00",Сб:"09:00-19:00",Вс:"10:00-17:00"},website:"famDoc.kz"},
+  {id:7,name:"Клиника «AVICENNA»",type:"Частная",city:"Алматы",addr:"ул. Аль-Фараби, 77",phone:"+7 727 394-50-00",specs:["Многопрофильная","Кардиология","Неврология","Хирургия"],rating:4.9,reviews:445,lat:43.25,lng:76.9,license:"МО-ЧАС-0007",hours:{Пн:"08:00-22:00",Вт:"08:00-22:00",Ср:"08:00-22:00",Чт:"08:00-22:00",Пт:"08:00-22:00",Сб:"09:00-20:00",Вс:"10:00-18:00"},website:"avicenna.kz"},
+  {id:8,name:"ГКБ №1 Алматы",type:"Государственная",city:"Алматы",addr:"ул. Байзакова, 92",phone:"+7 727 261-70-41",specs:["Многопрофильная","Скорая помощь","Травматология"],rating:3.8,reviews:678,lat:43.23,lng:76.92,license:"МО-ГОС-0008",hours:{Пн:"Круглосуточно",Вт:"Круглосуточно",Ср:"Круглосуточно",Чт:"Круглосуточно",Пт:"Круглосуточно",Сб:"Круглосуточно",Вс:"Круглосуточно"},website:""},
+  {id:9,name:"Стоматология «WhiteDent»",type:"Частная",city:"Алматы",addr:"ул. Достык, 130",phone:"+7 727 313-22-11",specs:["Стоматология"],rating:4.7,reviews:234,lat:43.22,lng:76.95,license:"МО-ЧАС-0009",hours:{Пн:"09:00-21:00",Вт:"09:00-21:00",Ср:"09:00-21:00",Чт:"09:00-21:00",Пт:"09:00-21:00",Сб:"10:00-19:00",Вс:"10:00-17:00"},website:"whitedent.kz"},
+  {id:10,name:"Детская больница «Балапан»",type:"Частная",city:"Алматы",addr:"мкр. Самал-2, 33",phone:"+7 727 225-11-50",specs:["Педиатрия","Неврология","Гастроэнтерология"],rating:4.8,reviews:311,lat:43.24,lng:76.88,license:"МО-ЧАС-0010",hours:{Пн:"08:00-21:00",Вт:"08:00-21:00",Ср:"08:00-21:00",Чт:"08:00-21:00",Пт:"08:00-21:00",Сб:"09:00-19:00",Вс:"10:00-16:00"},website:"balapan.kz"},
+  {id:11,name:"Алматинский онкологический центр",type:"Государственная",city:"Алматы",addr:"ул. Навои, 9а",phone:"+7 727 292-76-00",specs:["Онкология","Химиотерапия","Хирургия"],rating:4.1,reviews:189,lat:43.26,lng:76.86,license:"МО-ГОС-0011",hours:{Пн:"08:00-17:00",Вт:"08:00-17:00",Ср:"08:00-17:00",Чт:"08:00-17:00",Пт:"08:00-16:00",Сб:"Выходной",Вс:"Выходной"},website:""},
+  {id:12,name:"Клиника «Ар-Мед»",type:"Частная",city:"Алматы",addr:"пр. Назарбаева, 209",phone:"+7 727 350-60-20",specs:["Гинекология","Урология","Эндокринология"],rating:4.5,reviews:127,lat:43.21,lng:76.91,license:"МО-ЧАС-0012",hours:{Пн:"09:00-20:00",Вт:"09:00-20:00",Ср:"09:00-20:00",Чт:"09:00-20:00",Пт:"09:00-20:00",Сб:"10:00-17:00",Вс:"Выходной"},website:"armed.kz"},
+  {id:13,name:"ОЦКО «Офтальмика»",type:"Частная",city:"Алматы",addr:"ул. Жибек жолы, 47",phone:"+7 727 273-10-10",specs:["Офтальмология"],rating:4.9,reviews:356,lat:43.27,lng:76.94,license:"МО-ЧАС-0013",hours:{Пн:"08:00-20:00",Вт:"08:00-20:00",Ср:"08:00-20:00",Чт:"08:00-20:00",Пт:"08:00-20:00",Сб:"09:00-18:00",Вс:"Выходной"},website:"oftalmika.kz"},
+  {id:14,name:"Областная клиническая больница Шымкента",type:"Государственная",city:"Шымкент",addr:"пр. Республика, 1",phone:"+7 7252 53-20-00",specs:["Многопрофильная","Хирургия","Неврология","Кардиология"],rating:3.7,reviews:412,lat:42.3,lng:69.6,license:"МО-ГОС-0014",hours:{Пн:"Круглосуточно",Вт:"Круглосуточно",Ср:"Круглосуточно",Чт:"Круглосуточно",Пт:"Круглосуточно",Сб:"Круглосуточно",Вс:"Круглосуточно"},website:""},
+  {id:15,name:"Клиника «Шипагер»",type:"Частная",city:"Шымкент",addr:"ул. Байтурсынова, 11",phone:"+7 7252 30-12-13",specs:["Терапия","Педиатрия","Гинекология"],rating:4.3,reviews:89,lat:42.32,lng:69.62,license:"МО-ЧАС-0015",hours:{Пн:"08:00-21:00",Вт:"08:00-21:00",Ср:"08:00-21:00",Чт:"08:00-21:00",Пт:"08:00-21:00",Сб:"09:00-18:00",Вс:"Выходной"},website:"shipager.kz"},
+  {id:16,name:"МЦ «Туран-Медикал»",type:"Частная",city:"Шымкент",addr:"мкр. Нурсат, блок 17",phone:"+7 7252 44-00-55",specs:["Стоматология","Дерматология","Косметология"],rating:4.6,reviews:203,lat:42.28,lng:69.58,license:"МО-ЧАС-0016",hours:{Пн:"09:00-21:00",Вт:"09:00-21:00",Ср:"09:00-21:00",Чт:"09:00-21:00",Пт:"09:00-21:00",Сб:"10:00-20:00",Вс:"10:00-18:00"},website:"turanmed.kz"},
+  {id:17,name:"ГККП «Больница скорой помощи» Шымкент",type:"Государственная",city:"Шымкент",addr:"ул. Сарымсакова, 4",phone:"+7 7252 56-11-00",specs:["Скорая помощь","Травматология","Хирургия"],rating:3.5,reviews:289,lat:42.31,lng:69.63,license:"МО-ГОС-0017",hours:{Пн:"Круглосуточно",Вт:"Круглосуточно",Ср:"Круглосуточно",Чт:"Круглосуточно",Пт:"Круглосуточно",Сб:"Круглосуточно",Вс:"Круглосуточно"},website:""},
+  {id:18,name:"Областная больница Карагандинской обл.",type:"Государственная",city:"Қарағанды",addr:"ул. Ерубаева, 77",phone:"+7 7212 43-11-22",specs:["Многопрофильная","Онкология","Кардиология"],rating:3.9,reviews:334,lat:49.8,lng:73.1,license:"МО-ГОС-0018",hours:{Пн:"Круглосуточно",Вт:"Круглосуточно",Ср:"Круглосуточно",Чт:"Круглосуточно",Пт:"Круглосуточно",Сб:"Круглосуточно",Вс:"Круглосуточно"},website:""},
+  {id:19,name:"МЦ «Салауатты»",type:"Частная",city:"Қарағанды",addr:"бул. Мира, 56",phone:"+7 7212 56-77-89",specs:["Терапия","Эндокринология","Педиатрия"],rating:4.4,reviews:112,lat:49.82,lng:73.08,license:"МО-ЧАС-0019",hours:{Пн:"08:00-20:00",Вт:"08:00-20:00",Ср:"08:00-20:00",Чт:"08:00-20:00",Пт:"08:00-20:00",Сб:"09:00-17:00",Вс:"Выходной"},website:"salauatty.kz"},
+  {id:20,name:"Стоматологический центр «Dent-Lux»",type:"Частная",city:"Қарағанды",addr:"пр. Нурсултана, 32",phone:"+7 7212 40-10-40",specs:["Стоматология","Челюстно-лицевая хирургия"],rating:4.7,reviews:176,lat:49.78,lng:73.12,license:"МО-ЧАС-0020",hours:{Пн:"09:00-21:00",Вт:"09:00-21:00",Ср:"09:00-21:00",Чт:"09:00-21:00",Пт:"09:00-21:00",Сб:"10:00-18:00",Вс:"Выходной"},website:"dentlux.kz"},
+  {id:21,name:"Областная психиатрическая больница",type:"Государственная",city:"Актобе",addr:"ул. Маресьева, 30",phone:"+7 7132 21-55-00",specs:["Психиатрия","Неврология"],rating:3.4,reviews:67,lat:50.28,lng:57.2,license:"МО-ГОС-0021",hours:{Пн:"Круглосуточно",Вт:"Круглосуточно",Ср:"Круглосуточно",Чт:"Круглосуточно",Пт:"Круглосуточно",Сб:"Круглосуточно",Вс:"Круглосуточно"},website:""},
+  {id:22,name:"МЦ «Альянс»",type:"Частная",city:"Актобе",addr:"ул. Алии Молдагуловой, 66",phone:"+7 7132 56-78-90",specs:["Многопрофильная","Гинекология","Урология"],rating:4.5,reviews:93,lat:50.3,lng:57.22,license:"МО-ЧАС-0022",hours:{Пн:"08:00-21:00",Вт:"08:00-21:00",Ср:"08:00-21:00",Чт:"08:00-21:00",Пт:"08:00-21:00",Сб:"09:00-18:00",Вс:"Выходной"},website:"alliance-med.kz"},
+  {id:23,name:"Детская многопрофильная больница Тараза",type:"Государственная",city:"Тараз",addr:"ул. Толе Би, 194",phone:"+7 7262 43-10-10",specs:["Педиатрия","Хирургия","Неврология"],rating:4.0,reviews:156,lat:42.9,lng:71.38,license:"МО-ГОС-0023",hours:{Пн:"Круглосуточно",Вт:"Круглосуточно",Ср:"Круглосуточно",Чт:"Круглосуточно",Пт:"Круглосуточно",Сб:"Круглосуточно",Вс:"Круглосуточно"},website:""},
+  {id:24,name:"Клиника «Жамбыл-Медикал»",type:"Частная",city:"Тараз",addr:"пр. Жамбыла, 74",phone:"+7 7262 55-44-33",specs:["Терапия","Кардиология","Дерматология"],rating:4.2,reviews:78,lat:42.92,lng:71.4,license:"МО-ЧАС-0024",hours:{Пн:"09:00-20:00",Вт:"09:00-20:00",Ср:"09:00-20:00",Чт:"09:00-20:00",Пт:"09:00-20:00",Сб:"10:00-17:00",Вс:"Выходной"},website:""},
+  {id:25,name:"Областная больница Павлодара",type:"Государственная",city:"Павлодар",addr:"ул. Академика Сатпаева, 8",phone:"+7 7182 32-00-11",specs:["Многопрофильная","Травматология","Хирургия","Кардиология"],rating:3.8,reviews:267,lat:52.3,lng:76.95,license:"МО-ГОС-0025",hours:{Пн:"Круглосуточно",Вт:"Круглосуточно",Ср:"Круглосуточно",Чт:"Круглосуточно",Пт:"Круглосуточно",Сб:"Круглосуточно",Вс:"Круглосуточно"},website:""},
+  {id:26,name:"МЦ «Irtysh Med»",type:"Частная",city:"Павлодар",addr:"ул. Ленина, 135",phone:"+7 7182 45-67-89",specs:["Стоматология","Офтальмология","Педиатрия"],rating:4.6,reviews:134,lat:52.32,lng:76.97,license:"МО-ЧАС-0026",hours:{Пн:"08:00-21:00",Вт:"08:00-21:00",Ср:"08:00-21:00",Чт:"08:00-21:00",Пт:"08:00-21:00",Сб:"09:00-19:00",Вс:"Выходной"},website:"irtyshmed.kz"},
+  {id:27,name:"Перинатальный центр Атырау",type:"Государственная",city:"Атырау",addr:"ул. Абая, 15",phone:"+7 7122 27-50-00",specs:["Гинекология","Акушерство","Педиатрия"],rating:4.2,reviews:189,lat:47.1,lng:51.92,license:"МО-ГОС-0027",hours:{Пн:"Круглосуточно",Вт:"Круглосуточно",Ср:"Круглосуточно",Чт:"Круглосуточно",Пт:"Круглосуточно",Сб:"Круглосуточно",Вс:"Круглосуточно"},website:""},
+  {id:28,name:"Клиника «КаспиМед»",type:"Частная",city:"Атырау",addr:"мкр. Привокзальный, 22",phone:"+7 7122 30-45-60",specs:["Многопрофильная","Терапия","Неврология"],rating:4.3,reviews:67,lat:47.12,lng:51.9,license:"МО-ЧАС-0028",hours:{Пн:"08:00-21:00",Вт:"08:00-21:00",Ср:"08:00-21:00",Чт:"08:00-21:00",Пт:"08:00-21:00",Сб:"09:00-18:00",Вс:"Выходной"},website:"kaspimed.kz"},
+  {id:29,name:"Семипалатинская областная больница",type:"Государственная",city:"Семей",addr:"ул. Интернациональная, 56",phone:"+7 7222 52-10-00",specs:["Многопрофильная","Онкология","Хирургия"],rating:3.6,reviews:198,lat:50.42,lng:80.23,license:"МО-ГОС-0029",hours:{Пн:"Круглосуточно",Вт:"Круглосуточно",Ср:"Круглосуточно",Чт:"Круглосуточно",Пт:"Круглосуточно",Сб:"Круглосуточно",Вс:"Круглосуточно"},website:""},
+  {id:30,name:"МЦ «Абай Медикал»",type:"Частная",city:"Семей",addr:"ул. Абая, 123",phone:"+7 7222 60-11-22",specs:["Терапия","Педиатрия","Стоматология"],rating:4.4,reviews:88,lat:50.44,lng:80.25,license:"МО-ЧАС-0030",hours:{Пн:"09:00-21:00",Вт:"09:00-21:00",Ср:"09:00-21:00",Чт:"09:00-21:00",Пт:"09:00-21:00",Сб:"10:00-18:00",Вс:"Выходной"},website:"abaimedical.kz"},
+  {id:31,name:"ВКО Областная больница",type:"Государственная",city:"Өскемен",addr:"ул. Протозанова, 20",phone:"+7 7232 26-71-42",specs:["Многопрофильная","Нейрохирургия","Кардиология"],rating:3.9,reviews:223,lat:49.97,lng:82.62,license:"МО-ГОС-0031",hours:{Пн:"Круглосуточно",Вт:"Круглосуточно",Ср:"Круглосуточно",Чт:"Круглосуточно",Пт:"Круглосуточно",Сб:"Круглосуточно",Вс:"Круглосуточно"},website:""},
+  {id:32,name:"Клиника «Айболит» Өскемен",type:"Частная",city:"Өскемен",addr:"ул. Орджоникидзе, 40",phone:"+7 7232 70-44-55",specs:["Педиатрия","Дерматология","Офтальмология"],rating:4.7,reviews:119,lat:49.99,lng:82.6,license:"МО-ЧАС-0032",hours:{Пн:"08:00-21:00",Вт:"08:00-21:00",Ср:"08:00-21:00",Чт:"08:00-21:00",Пт:"08:00-21:00",Сб:"09:00-18:00",Вс:"Выходной"},website:"aibolit-uko.kz"},
+  {id:33,name:"Реабилитационный центр «Сана»",type:"Частная",city:"Астана",addr:"ул. Бейбитшилик, 18",phone:"+7 7172 23-45-67",specs:["Неврология","Физиотерапия","Травматология"],rating:4.6,reviews:77,lat:51.14,lng:71.43,license:"МО-ЧАС-0033",hours:{Пн:"08:00-20:00",Вт:"08:00-20:00",Ср:"08:00-20:00",Чт:"08:00-20:00",Пт:"08:00-20:00",Сб:"09:00-17:00",Вс:"Выходной"},website:"sana-rehab.kz"},
+  {id:34,name:"МЦ «Санем»",type:"Частная",city:"Алматы",addr:"ул. Розыбакиева, 95",phone:"+7 727 355-00-11",specs:["Кардиология","Эндокринология","Гастроэнтерология"],rating:4.5,reviews:164,lat:43.28,lng:76.87,license:"МО-ЧАС-0034",hours:{Пн:"08:00-21:00",Вт:"08:00-21:00",Ср:"08:00-21:00",Чт:"08:00-21:00",Пт:"08:00-21:00",Сб:"09:00-19:00",Вс:"10:00-17:00"},website:"sanem.kz"},
+  {id:35,name:"Центр ядерной медицины",type:"Государственная",city:"Астана",addr:"ул. Жолдасбекова, 8",phone:"+7 7172 77-88-00",specs:["Онкология","Ядерная диагностика","Лучевая терапия"],rating:4.5,reviews:56,lat:51.16,lng:71.47,license:"МО-ГОС-0035",hours:{Пн:"08:00-18:00",Вт:"08:00-18:00",Ср:"08:00-18:00",Чт:"08:00-18:00",Пт:"08:00-17:00",Сб:"Выходной",Вс:"Выходной"},website:"cnm.kz"},
+  {id:36,name:"Клиника «Intermed»",type:"Частная",city:"Алматы",addr:"мкр. Горный гигант, 1а",phone:"+7 727 378-99-00",specs:["Многопрофильная","Хирургия","Кардиология","Неврология"],rating:4.8,reviews:412,lat:43.2,lng:76.93,license:"МО-ЧАС-0036",hours:{Пн:"08:00-22:00",Вт:"08:00-22:00",Ср:"08:00-22:00",Чт:"08:00-22:00",Пт:"08:00-22:00",Сб:"09:00-20:00",Вс:"10:00-18:00"},website:"intermed.kz"},
+  {id:37,name:"Городская поликлиника №7",type:"Государственная",city:"Алматы",addr:"ул. Тулебаева, 101",phone:"+7 727 267-33-00",specs:["Терапия","Педиатрия","Хирургия"],rating:3.5,reviews:544,lat:43.26,lng:76.9,license:"МО-ГОС-0037",hours:{Пн:"08:00-18:00",Вт:"08:00-18:00",Ср:"08:00-18:00",Чт:"08:00-18:00",Пт:"08:00-17:00",Сб:"09:00-14:00",Вс:"Выходной"},website:""},
+  {id:38,name:"Дерматовенерологический диспансер",type:"Государственная",city:"Шымкент",addr:"ул. Рыскулова, 2а",phone:"+7 7252 44-10-22",specs:["Дерматология","Венерология"],rating:3.6,reviews:112,lat:42.29,lng:69.61,license:"МО-ГОС-0038",hours:{Пн:"08:00-17:00",Вт:"08:00-17:00",Ср:"08:00-17:00",Чт:"08:00-17:00",Пт:"08:00-16:00",Сб:"Выходной",Вс:"Выходной"},website:""},
+  {id:39,name:"МЦ «Ибн Сина»",type:"Частная",city:"Шымкент",addr:"пр. Тасыбекова, 15",phone:"+7 7252 77-00-99",specs:["Многопрофильная","Кардиология","Неврология","Гастроэнтерология"],rating:4.7,reviews:198,lat:42.27,lng:69.57,license:"МО-ЧАС-0039",hours:{Пн:"08:00-22:00",Вт:"08:00-22:00",Ср:"08:00-22:00",Чт:"08:00-22:00",Пт:"08:00-22:00",Сб:"09:00-20:00",Вс:"10:00-18:00"},website:"ibnsina.kz"},
+  {id:40,name:"Нейрохирургический центр",type:"Государственная",city:"Астана",addr:"ул. Сыганак, 14",phone:"+7 7172 55-00-77",specs:["Нейрохирургия","Неврология"],rating:4.6,reviews:88,lat:51.13,lng:71.41,license:"МО-ГОС-0040",hours:{Пн:"08:00-18:00",Вт:"08:00-18:00",Ср:"08:00-18:00",Чт:"08:00-18:00",Пт:"08:00-17:00",Сб:"Выходной",Вс:"Выходной"},website:"nsc.kz"},
+  {id:41,name:"МЦ «Vita»",type:"Частная",city:"Павлодар",addr:"ул. Катаева, 55",phone:"+7 7182 33-22-11",specs:["Гинекология","Педиатрия","Терапия"],rating:4.4,reviews:89,lat:52.28,lng:76.93,license:"МО-ЧАС-0041",hours:{Пн:"08:00-21:00",Вт:"08:00-21:00",Ср:"08:00-21:00",Чт:"08:00-21:00",Пт:"08:00-21:00",Сб:"09:00-18:00",Вс:"Выходной"},website:"vita-pav.kz"},
+  {id:42,name:"Клиника «УМИТ»",type:"Частная",city:"Актобе",addr:"ул. Маресьева, 15",phone:"+7 7132 77-66-55",specs:["Стоматология","Офтальмология","Дерматология"],rating:4.5,reviews:103,lat:50.26,lng:57.18,license:"МО-ЧАС-0042",hours:{Пн:"09:00-21:00",Вт:"09:00-21:00",Ср:"09:00-21:00",Чт:"09:00-21:00",Пт:"09:00-21:00",Сб:"10:00-18:00",Вс:"Выходной"},website:"umit-med.kz"},
+  {id:43,name:"МЦ «Алтай»",type:"Частная",city:"Өскемен",addr:"пр. Независимости, 88",phone:"+7 7232 50-66-77",specs:["Многопрофильная","Травматология","Неврология"],rating:4.3,reviews:77,lat:50.01,lng:82.64,license:"МО-ЧАС-0043",hours:{Пн:"08:00-21:00",Вт:"08:00-21:00",Ср:"08:00-21:00",Чт:"08:00-21:00",Пт:"08:00-21:00",Сб:"09:00-18:00",Вс:"Выходной"},website:""},
+  {id:44,name:"Туберкулёзный диспансер Атырау",type:"Государственная",city:"Атырау",addr:"ул. Баймуханова, 33",phone:"+7 7122 21-10-30",specs:["Пульмонология","Фтизиатрия"],rating:3.3,reviews:44,lat:47.08,lng:51.94,license:"МО-ГОС-0044",hours:{Пн:"08:00-17:00",Вт:"08:00-17:00",Ср:"08:00-17:00",Чт:"08:00-17:00",Пт:"08:00-16:00",Сб:"Выходной",Вс:"Выходной"},website:""},
+  {id:45,name:"МЦ «Медлайн»",type:"Частная",city:"Семей",addr:"ул. Гагарина, 22",phone:"+7 7222 52-80-80",specs:["Терапия","Хирургия","Гинекология"],rating:4.2,reviews:55,lat:50.4,lng:80.21,license:"МО-ЧАС-0045",hours:{Пн:"08:00-21:00",Вт:"08:00-21:00",Ср:"08:00-21:00",Чт:"08:00-21:00",Пт:"08:00-21:00",Сб:"09:00-17:00",Вс:"Выходной"},website:"medline-semey.kz"},
+  {id:46,name:"Национальный центр материнства и детства",type:"Государственная",city:"Астана",addr:"ул. Тимирязева, 32",phone:"+7 7172 70-92-00",specs:["Акушерство","Педиатрия","Гинекология","Неонатология"],rating:4.8,reviews:622,lat:51.19,lng:71.44,license:"МО-ГОС-0046",hours:{Пн:"Круглосуточно",Вт:"Круглосуточно",Ср:"Круглосуточно",Чт:"Круглосуточно",Пт:"Круглосуточно",Сб:"Круглосуточно",Вс:"Круглосуточно"},website:"ncmd.kz"},
+  {id:47,name:"Клиника «Premium Med»",type:"Частная",city:"Алматы",addr:"ул. Хаджи Мукана, 2",phone:"+7 727 321-00-10",specs:["Многопрофильная","Кардиология","Онкология","Хирургия"],rating:4.9,reviews:287,lat:43.23,lng:76.96,license:"МО-ЧАС-0047",hours:{Пн:"08:00-22:00",Вт:"08:00-22:00",Ср:"08:00-22:00",Чт:"08:00-22:00",Пт:"08:00-22:00",Сб:"09:00-21:00",Вс:"10:00-19:00"},website:"premiummed.kz"},
+  {id:48,name:"Областной кардиологический центр",type:"Государственная",city:"Қарағанды",addr:"ул. Нурмагамбетова, 3",phone:"+7 7212 77-55-33",specs:["Кардиология","Кардиохирургия"],rating:4.3,reviews:178,lat:49.84,lng:73.1,license:"МО-ГОС-0048",hours:{Пн:"08:00-18:00",Вт:"08:00-18:00",Ср:"08:00-18:00",Чт:"08:00-18:00",Пт:"08:00-17:00",Сб:"Выходной",Вс:"Выходной"},website:""},
+  {id:49,name:"МЦ «HealthCity»",type:"Частная",city:"Алматы",addr:"ул. Фурманова, 240",phone:"+7 727 399-10-20",specs:["Терапия","Психиатрия","Неврология","Реабилитация"],rating:4.7,reviews:231,lat:43.24,lng:76.9,license:"МО-ЧАС-0049",hours:{Пн:"08:00-22:00",Вт:"08:00-22:00",Ср:"08:00-22:00",Чт:"08:00-22:00",Пт:"08:00-22:00",Сб:"10:00-20:00",Вс:"10:00-18:00"},website:"healthcity.kz"},
+  {id:50,name:"Кожно-венерологический диспансер",type:"Государственная",city:"Тараз",addr:"ул. Карасу, 44",phone:"+7 7262 55-00-11",specs:["Дерматология","Венерология"],rating:3.2,reviews:33,lat:42.88,lng:71.36,license:"МО-ГОС-0050",hours:{Пн:"08:00-17:00",Вт:"08:00-17:00",Ср:"08:00-17:00",Чт:"08:00-17:00",Пт:"08:00-16:00",Сб:"Выходной",Вс:"Выходной"},website:""},
+];
+
+const cityCoords = {
+  "Астана":{x:390,y:150},"Алматы":{x:560,y:290},"Шымкент":{x:490,y:300},
+  "Қарағанды":{x:420,y:170},"Актобе":{x:210,y:140},"Тараз":{x:470,y:300},
+  "Павлодар":{x:520,y:120},"Атырау":{x:130,y:220},"Семей":{x:600,y:165},
+  "Өскемен":{x:640,y:190},
+};
+
+let filters = { search: "", city: "", type: "", spec: "" };
+let selectedOrg = null;
+let currentView = "list";
+let sort = "rating";
+
+function stars(r) {
+  let s = "";
+  const full = Math.floor(r);
+  for(let i=0;i<5;i++) s += i<full?"★":"☆";
+  return s;
+}
+
+function filtered() {
+  let data = [...ORGS];
+  if(filters.search) {
+    const q = filters.search.toLowerCase();
+    data = data.filter(o => o.name.toLowerCase().includes(q) || o.city.toLowerCase().includes(q) || o.specs.some(s=>s.toLowerCase().includes(q)) || o.addr.toLowerCase().includes(q));
+  }
+  if(filters.city) data = data.filter(o => o.city === filters.city);
+  if(filters.type) data = data.filter(o => o.type === filters.type);
+  if(filters.spec) data = data.filter(o => o.specs.includes(filters.spec));
+  data.sort((a,b) => {
+    if(sort==="rating") return b.rating - a.rating;
+    if(sort==="name") return a.name.localeCompare(b.name,"ru");
+    return b.reviews - a.reviews;
+  });
+  return data;
+}
+
+function renderList() {
+  const data = filtered();
+  const el = document.getElementById("listView");
+  document.getElementById("resultsCount").textContent = `Найдено: ${data.length}`;
+  document.getElementById("headerStats").textContent = `${data.length} из 50 организаций`;
+  updateStats(data);
+
+  if(!data.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🏥</div><div>Организации не найдены</div><div style="font-size:12px;margin-top:4px;">Попробуйте изменить фильтры</div></div>`;
+    return;
+  }
+
+  el.innerHTML = data.map(o => `
+    <div class="org-card${selectedOrg && selectedOrg.id===o.id?' selected':''}" onclick="selectOrg(${o.id})">
+      <div>
+        <div class="org-name">${o.name}</div>
+        <div class="org-meta">
+          <span class="badge ${o.type==='Государственная'?'badge-pub':'badge-priv'}">${o.type==='Государственная'?'Гос.':'Частная'}</span>
+          <span class="badge badge-spec">${o.city}</span>
+        </div>
+        <div class="org-addr">📍 ${o.addr}</div>
+        <div class="org-specs">${o.specs.slice(0,3).map(s=>`<span class="spec-tag">${s}</span>`).join("")}${o.specs.length>3?`<span class="spec-tag">+${o.specs.length-3}</span>`:""}</div>
+      </div>
+      <div class="org-right">
+        <div class="rating"><span class="star">★</span>${o.rating.toFixed(1)}</div>
+        <div class="reviews">${o.reviews} отз.</div>
+        <button class="phone-btn" onclick="event.stopPropagation()">📞 Звонок</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderMap() {
+  const data = filtered();
+  const pins = document.getElementById("mapPins");
+  if(!pins) return;
+  pins.innerHTML = "";
+  
+  const groups = {};
+  data.forEach(o => {
+    if(!groups[o.city]) groups[o.city] = [];
+    groups[o.city].push(o);
+  });
+
+  Object.entries(groups).forEach(([city, orgs]) => {
+    const cc = cityCoords[city];
+    if(!cc) return;
+    
+    const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+    g.setAttribute("cursor","pointer");
+    g.onclick = () => selectOrg(orgs[0].id);
+
+    const circle = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    circle.setAttribute("cx", cc.x);
+    circle.setAttribute("cy", cc.y);
+    circle.setAttribute("r", Math.min(8 + orgs.length * 1.5, 18));
+    circle.setAttribute("fill", orgs[0].type === "Государственная" ? "#185FA5" : "#1D9E75");
+    circle.setAttribute("fill-opacity","0.85");
+    circle.setAttribute("stroke","white");
+    circle.setAttribute("stroke-width","1.5");
+
+    const label = document.createElementNS("http://www.w3.org/2000/svg","text");
+    label.setAttribute("x", cc.x);
+    label.setAttribute("y", cc.y + 4);
+    label.setAttribute("text-anchor","middle");
+    label.setAttribute("font-size","10");
+    label.setAttribute("fill","white");
+    label.setAttribute("font-family","sans-serif");
+    label.setAttribute("font-weight","bold");
+    label.textContent = orgs.length;
+
+    const cityLabel = document.createElementNS("http://www.w3.org/2000/svg","text");
+    cityLabel.setAttribute("x", cc.x);
+    cityLabel.setAttribute("y", cc.y - 16);
+    cityLabel.setAttribute("text-anchor","middle");
+    cityLabel.setAttribute("font-size","9");
+    cityLabel.setAttribute("fill","#333");
+    cityLabel.setAttribute("font-family","sans-serif");
+    cityLabel.textContent = city;
+
+    g.appendChild(circle);
+    g.appendChild(label);
+    g.appendChild(cityLabel);
+    pins.appendChild(g);
+  });
+
+  document.getElementById("resultsCount").textContent = `Найдено: ${data.length}`;
+  document.getElementById("headerStats").textContent = `${data.length} из 50 организаций`;
+}
+
+function selectOrg(id) {
+  selectedOrg = ORGS.find(o=>o.id===id);
+  if(!selectedOrg) return;
+  
+  const panel = document.getElementById("detailPanel");
+  if(!panel) return;
+  
+  const typeClass = selectedOrg.type === "Государственная" ? "badge-pub" : "badge-priv";
+  const ratingStars = stars(selectedOrg.rating);
+  const hoursHtml = Object.entries(selectedOrg.hours).map(([d,t])=>`<div class="hours-row"><span class="hours-day">${d}</span><span class="hours-time">${t}</span></div>`).join("");
+
+  panel.innerHTML = `
+    <div style="position:relative;">
+      <div class="detail-header">
+        <button class="detail-close" onclick="closeDetail()">✕</button>
+        <div class="detail-type-badge ${typeClass}">${selectedOrg.type}</div>
+        <div class="detail-name">${selectedOrg.name}</div>
+        <div class="detail-city">📍 ${selectedOrg.city}, ${selectedOrg.addr}</div>
+        <div class="detail-rating">
+          <span class="detail-stars">${ratingStars}</span>
+          <span class="detail-score">${selectedOrg.rating.toFixed(1)}</span>
+          <span class="detail-reviews">${selectedOrg.reviews} отзывов</span>
+        </div>
+      </div>
+      <div class="detail-body">
+        <div class="detail-section">
+          <div class="detail-section-label">Специализации</div>
+          <div class="spec-list">${selectedOrg.specs.map(s=>`<span class="spec-pill">${s}</span>`).join("")}</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-label">Контакты</div>
+          <div class="detail-row"><span class="detail-row-key">Телефон</span><span class="detail-row-val">${selectedOrg.phone}</span></div>
+          ${selectedOrg.website?`<div class="detail-row"><span class="detail-row-key">Сайт</span><span class="detail-row-val" style="color:#1D9E75;">${selectedOrg.website}</span></div>`:''}
+          <div class="detail-row"><span class="detail-row-key">Лицензия</span><span class="detail-row-val" style="font-size:11px;color:var(--color-text-secondary)">${selectedOrg.license}</span></div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-label">Часы работы</div>
+          <div class="hours-grid">${hoursHtml}</div>
+        </div>
+        <div class="detail-section">
+          <button class="cta-btn cta-primary" onclick="sendPrompt('Запишись на приём в ${selectedOrg.name} — найди ближайшее свободное время')">Записаться на приём ↗</button>
+          <button class="cta-btn cta-secondary" onclick="sendPrompt('Сравни ${selectedOrg.name} с другими клиниками в ${selectedOrg.city} по специализации ${selectedOrg.specs[0]}')">Сравнить с другими ↗</button>
+        </div>
+      </div>
+    </div>
+  `;
+  panel.classList.add("open");
+
+  if(currentView === "list") renderList();
+}
+
+function closeDetail() {
+  const panel = document.getElementById("detailPanel");
+  if(panel) panel.classList.remove("open");
+  selectedOrg = null;
+  renderList();
+}
+
+function updateStats(data) {
+  const gov = data.filter(o=>o.type==="Государственная").length;
+  const priv = data.filter(o=>o.type==="Частная").length;
+  const avgRating = data.length ? (data.reduce((a,o)=>a+o.rating,0)/data.length).toFixed(1) : "—";
+  document.getElementById("statBlock").innerHTML = `
+    <div class="stat-row"><span class="stat-key"><span class="dot" style="background:#185FA5"></span>Государственных</span><span class="stat-val">${gov}</span></div>
+    <div class="stat-row"><span class="stat-key"><span class="dot" style="background:#1D9E75"></span>Частных</span><span class="stat-val">${priv}</span></div>
+    <div class="stat-row"><span class="stat-key">Ср. рейтинг</span><span class="stat-val">★ ${avgRating}</span></div>
+  `;
+}
+
+function switchView(view) {
+  currentView = view;
+  document.getElementById("tabList").className = "view-tab" + (view==="list"?" active":"");
+  document.getElementById("tabMap").className = "view-tab" + (view==="map"?" active":"");
+  document.getElementById("listView").style.display = view==="list" ? "flex" : "none";
+  document.getElementById("mapView").style.display = view==="map" ? "block" : "none";
+  if(view==="list") renderList();
+  else renderMap();
+}
+
+document.getElementById("searchInput").addEventListener("input", e => {
+  filters.search = e.target.value;
+  currentView==="list" ? renderList() : renderMap();
+});
+document.getElementById("cityFilter").addEventListener("change", e => {
+  filters.city = e.target.value;
+  currentView==="list" ? renderList() : renderMap();
+});
+document.getElementById("sortSelect").addEventListener("change", e => {
+  sort = e.target.value;
+  renderList();
+});
+
+document.getElementById("typeFilter").querySelectorAll(".chip").forEach(c => {
+  c.addEventListener("click", () => {
+    document.getElementById("typeFilter").querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));
+    c.classList.add("active");
+    filters.type = c.dataset.val;
+    currentView==="list" ? renderList() : renderMap();
+  });
+});
+
+document.getElementById("specFilter").querySelectorAll(".chip").forEach(c => {
+  c.addEventListener("click", () => {
+    document.getElementById("specFilter").querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));
+    c.classList.add("active");
+    filters.spec = c.dataset.val;
+    currentView==="list" ? renderList() : renderMap();
+  });
+});
+
+renderList();
+</script>
