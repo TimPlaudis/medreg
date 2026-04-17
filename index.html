@@ -126,4 +126,50 @@
       const container = document.getElementById('organizationsList');
       container.innerHTML = filtered.map(org => `
         <div class="card-hover bg-white rounded-3xl shadow p-6 flex gap-6 items-center">
-          <div class="w-12 h-12 bg-[#1D9E75]/10 text-[#1D9E75] rounded-2xl flex items-center justify-center text-3xl">🩺
+          <div class="w-12 h-12 bg-[#1D9E75]/10 text-[#1D9E75] rounded-2xl flex items-center justify-center text-3xl">🩺</div>
+          <div class="flex-1">
+            <h3 class="font-semibold text-xl">${org.name}</h3>
+            <p class="text-gray-500">${org.address} • ${org.city}</p>
+            <div class="flex gap-3 mt-3">
+              <span class="px-4 py-1 text-xs font-medium bg-gray-100 rounded-full">${org.spec}</span>
+              <span class="px-4 py-1 text-xs font-medium ${org.type === 'gos' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'} rounded-full">
+                ${org.type === 'gos' ? 'Государственная' : 'Частная'}
+              </span>
+            </div>
+          </div>
+          <button class="px-8 py-3 bg-[#0A2540] text-white rounded-2xl hover:bg-black transition">Подробнее</button>
+        </div>
+      `).join('');
+    }
+
+    // Простая фильтрация (можно доработать)
+    function filterOrganizations() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const city = document.getElementById('cityFilter').value;
+      const spec = document.getElementById('specFilter').value;
+
+      let filtered = organizations;
+
+      if (search) filtered = filtered.filter(o => o.name.toLowerCase().includes(search));
+      if (city) filtered = filtered.filter(o => o.city === city);
+      if (spec) filtered = filtered.filter(o => o.spec === spec);
+
+      document.getElementById('resultsCount').textContent = `Найдено: ${filtered.length} организаций`;
+      renderList(filtered);
+    }
+
+    function switchView(view) {
+      document.getElementById('listView').classList.toggle('hidden', view === 1);
+      document.getElementById('mapView').classList.toggle('hidden', view === 0);
+    }
+
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', () => {
+      renderList(organizations);
+      document.getElementById('searchInput').addEventListener('input', filterOrganizations);
+      document.getElementById('cityFilter').addEventListener('change', filterOrganizations);
+      document.getElementById('specFilter').addEventListener('change', filterOrganizations);
+    });
+  </script>
+</body>
+</html>
