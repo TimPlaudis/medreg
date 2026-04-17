@@ -8,15 +8,14 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <style>
     body { font-family: 'Inter', system-ui, sans-serif; }
-    .card {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    .card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card:hover { transform: translateY(-8px); }
+    .modal {
+      animation: modalPop 0.3s ease forwards;
     }
-    .card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.15);
-    }
-    .theme-toggle {
-      transition: all 0.3s ease;
+    @keyframes modalPop {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
     }
   </style>
 </head>
@@ -32,17 +31,7 @@
           <p class="text-zinc-500 text-sm">Реестр медицинских организаций Казахстана</p>
         </div>
       </div>
-
-      <div class="flex items-center gap-6">
-        <div class="text-right">
-          <div class="text-4xl font-semibold text-emerald-400">68</div>
-          <div class="text-xs tracking-widest text-zinc-500">ОРГАНИЗАЦИЙ</div>
-        </div>
-        
-        <button id="themeToggle" class="theme-toggle w-11 h-11 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-2xl flex items-center justify-center text-xl">
-          <i class="fa-solid fa-moon"></i>
-        </button>
-      </div>
+      <div class="text-4xl font-semibold text-emerald-400">68</div>
     </div>
   </header>
 
@@ -54,19 +43,15 @@
         <h2 class="font-semibold text-lg mb-6 flex items-center gap-3">
           <i class="fa-solid fa-filter"></i> Фильтры
         </h2>
-
+        
         <div class="space-y-6">
-          <!-- Поиск -->
-          <div>
-            <input id="searchInput" type="text" 
-                   class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none focus:border-emerald-600 text-sm"
-                   placeholder="Поиск организации...">
-          </div>
+          <input id="searchInput" type="text" 
+                 class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none focus:border-emerald-600"
+                 placeholder="Поиск организации...">
 
-          <!-- Город -->
           <div>
             <label class="block text-zinc-400 text-sm mb-2">Город</label>
-            <select id="cityFilter" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none focus:border-emerald-600">
+            <select id="cityFilter" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none">
               <option value="">Все города</option>
               <option value="Астана">Астана</option>
               <option value="Алматы">Алматы</option>
@@ -76,20 +61,9 @@
             </select>
           </div>
 
-          <!-- Тип -->
-          <div>
-            <label class="block text-zinc-400 text-sm mb-2">Тип организации</label>
-            <div class="grid grid-cols-2 gap-3">
-              <button onclick="setTypeFilter(this)" data-type="" class="type-btn active px-4 py-3 rounded-2xl bg-emerald-600 text-white text-sm">Все</button>
-              <button onclick="setTypeFilter(this)" data-type="gos" class="type-btn px-4 py-3 rounded-2xl border border-zinc-700 hover:bg-zinc-800 text-sm">Государственная</button>
-              <button onclick="setTypeFilter(this)" data-type="private" class="type-btn px-4 py-3 rounded-2xl border border-zinc-700 hover:bg-zinc-800 text-sm">Частная</button>
-            </div>
-          </div>
-
-          <!-- Специализация -->
           <div>
             <label class="block text-zinc-400 text-sm mb-2">Специализация</label>
-            <select id="specFilter" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none focus:border-emerald-600">
+            <select id="specFilter" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none">
               <option value="">Все специализации</option>
               <option value="Многопрофильная">Многопрофильная</option>
               <option value="Кардиология">Кардиология</option>
@@ -103,29 +77,36 @@
       </div>
     </div>
 
-    <!-- СПИСОК ОРГАНИЗАЦИЙ -->
+    <!-- СПИСОК -->
     <div class="lg:col-span-3">
-      <div class="flex justify-between items-center mb-8">
-        <h2 id="resultsCount" class="text-2xl font-semibold">Найдено: 68 организаций</h2>
-      </div>
+      <h2 id="resultsCount" class="text-2xl font-semibold mb-8">Найдено: 68 организаций</h2>
+      <div id="organizationsList" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    </div>
+  </div>
 
-      <div id="organizationsList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Карточки будут генерироваться через JavaScript -->
+  <!-- MODAL (Детальная информация) -->
+  <div id="detailModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100]">
+    <div class="modal bg-zinc-900 rounded-3xl max-w-2xl w-full mx-4 overflow-hidden">
+      <div class="p-8" id="modalContent">
+        <!-- Контент загружается через JS -->
+      </div>
+      <div class="border-t border-zinc-800 p-4 flex justify-end">
+        <button onclick="closeModal()" 
+                class="px-8 py-3 text-zinc-400 hover:text-white transition">Закрыть</button>
       </div>
     </div>
   </div>
 
   <script>
     const organizations = [
-      { id: 1, name: "Национальный научный центр материнства и детства", city: "Астана", type: "gos", spec: "Педиатрия", address: "ул. Туркестан, 32", phone: "+7 (7172) 70-10-00", rating: 4.8 },
-      { id: 2, name: "Клиника «Медицина»", city: "Алматы", type: "private", spec: "Многопрофильная", address: "проспект Достык, 85", phone: "+7 (727) 255-55-55", rating: 4.9 },
-      { id: 3, name: "Актюбинская областная многопрофильная больница", city: "Актобе", type: "gos", spec: "Многопрофильная", address: "ул. Абая, 101", phone: "+7 (7132) 55-00-00", rating: 4.5 },
-      { id: 4, name: "Центр кардиологии и сердечно-сосудистой хирургии", city: "Астана", type: "gos", spec: "Кардиология", address: "ул. Курганская, 12", phone: "+7 (7172) 79-00-00", rating: 4.7 },
-      { id: 5, name: "Стоматологическая клиника «Dental Art»", city: "Алматы", type: "private", spec: "Стоматология", address: "ул. Байтурсынова, 45", phone: "+7 (727) 300-40-40", rating: 4.9 },
-      { id: 6, name: "Шымкентская городская больница №1", city: "Шымкент", type: "gos", spec: "Многопрофильная", address: "ул. Тауке-хана, 78", phone: "+7 (7252) 53-00-00", rating: 4.3 },
-      { id: 7, name: "Онкологический центр «Астана»", city: "Астана", type: "gos", spec: "Онкология", address: "ул. Мангилик Ел, 20", phone: "+7 (7172) 70-50-00", rating: 4.6 },
-      { id: 8, name: "Клиника неврологии и нейрохирургии", city: "Алматы", type: "private", spec: "Неврология", address: "ул. Курмангазы, 112", phone: "+7 (727) 220-00-11", rating: 4.8 },
-      // Добавь ещё данные при необходимости
+      { id: 1, name: "Национальный научный центр материнства и детства", city: "Астана", type: "gos", spec: "Педиатрия", address: "ул. Туркестан, 32", phone: "+7 (7172) 70-10-00", email: "info@nncmd.kz", website: "https://nncmd.kz", rating: 4.8, description: "Крупнейший центр по оказанию специализированной помощи женщинам и детям в Казахстане." },
+      { id: 2, name: "Клиника «Медицина»", city: "Алматы", type: "private", spec: "Многопрофильная", address: "проспект Достык, 85", phone: "+7 (727) 255-55-55", email: "info@medicina.kz", website: "https://medicina.kz", rating: 4.9, description: "Современная многопрофильная клиника с высокотехнологичным оборудованием." },
+      { id: 3, name: "Актюбинская областная многопрофильная больница", city: "Актобе", type: "gos", spec: "Многопрофильная", address: "ул. Абая, 101", phone: "+7 (7132) 55-00-00", rating: 4.5, description: "Главная больница Актюбинской области с широким спектром услуг." },
+      { id: 4, name: "Центр кардиологии и сердечно-сосудистой хирургии", city: "Астана", type: "gos", spec: "Кардиология", address: "ул. Курганская, 12", phone: "+7 (7172) 79-00-00", rating: 4.7, description: "Специализированный центр по лечению заболеваний сердца и сосудов." },
+      { id: 5, name: "Стоматологическая клиника «Dental Art»", city: "Алматы", type: "private", spec: "Стоматология", address: "ул. Байтурсынова, 45", phone: "+7 (727) 300-40-40", rating: 4.9, description: "Современная стоматология с использованием цифровых технологий." },
+      { id: 6, name: "Шымкентская городская больница №1", city: "Шымкент", type: "gos", spec: "Многопрофильная", address: "ул. Тауке-хана, 78", phone: "+7 (7252) 53-00-00", rating: 4.3, description: "Одна из крупнейших больниц Южного Казахстана." },
+      { id: 7, name: "Онкологический центр «Астана»", city: "Астана", type: "gos", spec: "Онкология", address: "ул. Мангилик Ел, 20", phone: "+7 (7172) 70-50-00", rating: 4.6, description: "Специализированный онкологический центр с современным оборудованием." },
+      { id: 8, name: "Клиника неврологии и нейрохирургии", city: "Алматы", type: "private", spec: "Неврология", address: "ул. Курмангазы, 112", phone: "+7 (727) 220-00-11", rating: 4.8, description: "Экспертная помощь при заболеваниях нервной системы." },
     ];
 
     let currentTypeFilter = "";
@@ -134,35 +115,82 @@
       const container = document.getElementById('organizationsList');
       container.innerHTML = filtered.map(org => `
         <div class="card bg-zinc-900 border border-zinc-800 rounded-3xl p-6 hover:border-emerald-600">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="text-xl font-semibold mb-1">${org.name}</h3>
-              <p class="text-zinc-400 text-sm">${org.address}</p>
-              <p class="text-emerald-400 text-sm font-medium">${org.city}</p>
-            </div>
-            <div class="text-right">
-              <div class="flex items-center gap-1 text-amber-400">
-                <i class="fa-solid fa-star"></i>
-                <span class="font-medium">${org.rating}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex gap-2 mt-6">
-            <span class="px-4 py-1.5 text-xs font-medium bg-zinc-800 rounded-2xl">${org.spec}</span>
-            <span class="px-4 py-1.5 text-xs font-medium ${org.type === 'gos' ? 'bg-blue-900 text-blue-300' : 'bg-emerald-900 text-emerald-300'} rounded-2xl">
+          <h3 class="text-xl font-semibold mb-2">${org.name}</h3>
+          <p class="text-zinc-400 text-sm">${org.address} • ${org.city}</p>
+          
+          <div class="flex gap-2 mt-4">
+            <span class="px-4 py-1 text-xs bg-zinc-800 rounded-2xl">${org.spec}</span>
+            <span class="px-4 py-1 text-xs ${org.type === 'gos' ? 'bg-blue-900 text-blue-300' : 'bg-emerald-900 text-emerald-300'} rounded-2xl">
               ${org.type === 'gos' ? 'Государственная' : 'Частная'}
             </span>
           </div>
 
-          <div class="mt-6 pt-6 border-t border-zinc-800 flex justify-between items-center">
-            <div class="text-sm text-zinc-400">${org.phone}</div>
-            <button class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-2xl transition">
+          <div class="mt-6 flex justify-between items-center">
+            <div>
+              <span class="text-emerald-400">★ ${org.rating}</span>
+            </div>
+            <button onclick="showDetail(${org.id})" 
+                    class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-2xl transition">
               Подробнее
             </button>
           </div>
         </div>
       `).join('');
+    }
+
+    function showDetail(id) {
+      const org = organizations.find(o => o.id === id);
+      if (!org) return;
+
+      const modalContent = document.getElementById('modalContent');
+      modalContent.innerHTML = `
+        <h2 class="text-2xl font-semibold mb-2">${org.name}</h2>
+        <p class="text-emerald-400 mb-6">${org.city} • ${org.spec}</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div>
+            <p class="text-zinc-400 text-sm">Адрес</p>
+            <p class="font-medium">${org.address}</p>
+          </div>
+          <div>
+            <p class="text-zinc-400 text-sm">Телефон</p>
+            <p class="font-medium">${org.phone}</p>
+          </div>
+          ${org.email ? `
+          <div>
+            <p class="text-zinc-400 text-sm">Email</p>
+            <p class="font-medium">${org.email}</p>
+          </div>` : ''}
+          ${org.website ? `
+          <div>
+            <p class="text-zinc-400 text-sm">Сайт</p>
+            <a href="${org.website}" target="_blank" class="text-emerald-400 hover:underline">Перейти на сайт →</a>
+          </div>` : ''}
+        </div>
+
+        <div class="mb-8">
+          <p class="text-zinc-400 text-sm mb-2">О клинике</p>
+          <p class="text-zinc-300 leading-relaxed">${org.description}</p>
+        </div>
+
+        <!-- Карта 2ГИС -->
+        <div class="mb-6">
+          <p class="text-zinc-400 text-sm mb-3">Расположение на карте</p>
+          <div class="aspect-video bg-zinc-950 rounded-2xl overflow-hidden border border-zinc-700">
+            <iframe src="https://2gis.kz/astana/search/${encodeURIComponent(org.name)}" 
+                    width="100%" height="100%" style="border:0;" allowfullscreen></iframe>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('detailModal').classList.remove('hidden');
+      document.getElementById('detailModal').classList.add('flex');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('detailModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
     }
 
     function filterOrganizations() {
@@ -175,29 +203,10 @@
       if (search) filtered = filtered.filter(o => o.name.toLowerCase().includes(search));
       if (city) filtered = filtered.filter(o => o.city === city);
       if (spec) filtered = filtered.filter(o => o.spec === spec);
-      if (currentTypeFilter) filtered = filtered.filter(o => o.type === currentTypeFilter);
 
       document.getElementById('resultsCount').textContent = `Найдено: ${filtered.length} организаций`;
       renderOrganizations(filtered);
     }
-
-    function setTypeFilter(btn) {
-      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active', 'bg-emerald-600', 'text-white'));
-      btn.classList.add('active', 'bg-emerald-600', 'text-white');
-      currentTypeFilter = btn.getAttribute('data-type');
-      filterOrganizations();
-    }
-
-    // Тёмная/светлая тема
-    document.getElementById('themeToggle').addEventListener('click', () => {
-      if (document.documentElement.classList.contains('light')) {
-        document.documentElement.classList.remove('light');
-        document.getElementById('themeToggle').innerHTML = `<i class="fa-solid fa-moon"></i>`;
-      } else {
-        document.documentElement.classList.add('light');
-        document.getElementById('themeToggle').innerHTML = `<i class="fa-solid fa-sun"></i>`;
-      }
-    });
 
     // Инициализация
     document.addEventListener('DOMContentLoaded', () => {
@@ -206,6 +215,11 @@
       document.getElementById('searchInput').addEventListener('input', filterOrganizations);
       document.getElementById('cityFilter').addEventListener('change', filterOrganizations);
       document.getElementById('specFilter').addEventListener('change', filterOrganizations);
+    });
+
+    // Закрытие модального окна при клике вне его
+    document.getElementById('detailModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
     });
   </script>
 </body>
