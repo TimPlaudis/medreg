@@ -17,7 +17,6 @@
       background: var(--bg);
       color: var(--text);
       margin: 0;
-      padding: 0;
       line-height: 1.6;
     }
     .card {
@@ -28,7 +27,6 @@
     .card:hover {
       transform: translateY(-8px);
       border-color: var(--accent);
-      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3);
     }
     .modal {
       animation: modalPop 0.3s ease forwards;
@@ -37,25 +35,17 @@
       from { opacity: 0; transform: scale(0.95); }
       to { opacity: 1; transform: scale(1); }
     }
-    .btn {
-      background: var(--accent);
-      transition: background 0.2s;
-    }
-    .btn:hover {
-      background: #059669;
-    }
   </style>
 </head>
 <body class="min-h-screen">
 
-  <!-- HEADER -->
   <header class="border-b border-zinc-800 bg-zinc-950 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
       <div class="flex items-center gap-4">
         <div class="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-4xl">🩺</div>
         <div>
-          <h1 class="text-3xl font-semibold tracking-tight">MedReg KZ</h1>
-          <p class="text-zinc-500 text-sm -mt-1">Реестр медицинских организаций Казахстана</p>
+          <h1 class="text-3xl font-semibold">MedReg KZ</h1>
+          <p class="text-zinc-500 text-sm">Реестр медицинских организаций Казахстана</p>
         </div>
       </div>
       <div class="text-4xl font-semibold text-emerald-400">68</div>
@@ -64,7 +54,7 @@
 
   <div class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-4 gap-8">
 
-    <!-- ФИЛЬТРЫ -->
+    <!-- Фильтры -->
     <div class="lg:col-span-1">
       <div class="bg-zinc-900 rounded-3xl p-6 border border-zinc-800 sticky top-24">
         <h2 class="font-semibold text-lg mb-6 flex items-center gap-3">
@@ -73,12 +63,12 @@
         
         <div class="space-y-6">
           <input id="searchInput" type="text" 
-                 class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none focus:border-emerald-600 text-sm"
+                 class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none focus:border-emerald-600"
                  placeholder="Поиск организации...">
 
           <div>
             <label class="block text-zinc-400 text-sm mb-2">Город</label>
-            <select id="cityFilter" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none">
+            <select id="cityFilter" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4">
               <option value="">Все города</option>
               <option value="Астана">Астана</option>
               <option value="Алматы">Алматы</option>
@@ -90,7 +80,7 @@
 
           <div>
             <label class="block text-zinc-400 text-sm mb-2">Специализация</label>
-            <select id="specFilter" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none">
+            <select id="specFilter" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-5 py-4">
               <option value="">Все специализации</option>
               <option value="Многопрофильная">Многопрофильная</option>
               <option value="Кардиология">Кардиология</option>
@@ -104,14 +94,14 @@
       </div>
     </div>
 
-    <!-- СПИСОК -->
+    <!-- Список организаций -->
     <div class="lg:col-span-3">
       <h2 id="resultsCount" class="text-2xl font-semibold mb-8">Найдено: 68 организаций</h2>
       <div id="organizationsList" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
     </div>
   </div>
 
-  <!-- МОДАЛЬНОЕ ОКНО -->
+  <!-- Модальное окно -->
   <div id="detailModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100]">
     <div class="modal bg-zinc-900 rounded-3xl max-w-2xl w-full mx-4 overflow-hidden">
       <div class="p-8" id="modalContent"></div>
@@ -122,18 +112,87 @@
   </div>
 
   <script>
-    // Данные организаций (можно расширять)
-    const organizations = [ /* ... тот же массив из предыдущей версии ... */ ];
+    const organizations = [
+      { id: 1, name: "Национальный научный центр материнства и детства", city: "Астана", type: "gos", spec: "Педиатрия", address: "ул. Туркестан, 32", phone: "+7 (7172) 70-10-00", rating: 4.8, description: "Крупнейший центр по оказанию специализированной помощи женщинам и детям." },
+      { id: 2, name: "Клиника «Медицина»", city: "Алматы", type: "private", spec: "Многопрофильная", address: "проспект Достык, 85", phone: "+7 (727) 255-55-55", rating: 4.9, description: "Современная многопрофильная клиника с высоким уровнем сервиса." },
+      { id: 3, name: "Актюбинская областная многопрофильная больница", city: "Актобе", type: "gos", spec: "Многопрофильная", address: "ул. Абая, 101", phone: "+7 (7132) 55-00-00", rating: 4.5, description: "Главная многопрофильная больница Актюбинской области." },
+      { id: 4, name: "Центр кардиологии и сердечно-сосудистой хирургии", city: "Астана", type: "gos", spec: "Кардиология", address: "ул. Курганская, 12", phone: "+7 (7172) 79-00-00", rating: 4.7, description: "Специализированный кардиологический центр." },
+      { id: 5, name: "Стоматологическая клиника «Dental Art»", city: "Алматы", type: "private", spec: "Стоматология", address: "ул. Байтурсынова, 45", phone: "+7 (727) 300-40-40", rating: 4.9, description: "Современная стоматология премиум-класса." },
+      { id: 6, name: "Шымкентская городская больница №1", city: "Шымкент", type: "gos", spec: "Многопрофильная", address: "ул. Тауке-хана, 78", phone: "+7 (7252) 53-00-00", rating: 4.3, description: "Одна из ведущих больниц Южного региона." },
+      { id: 7, name: "Онкологический центр «Астана»", city: "Астана", type: "gos", spec: "Онкология", address: "ул. Мангилик Ел, 20", phone: "+7 (7172) 70-50-00", rating: 4.6, description: "Современный онкологический центр." },
+      { id: 8, name: "Клиника неврологии и нейрохирургии", city: "Алматы", type: "private", spec: "Неврология", address: "ул. Курмангазы, 112", phone: "+7 (727) 220-00-11", rating: 4.8, description: "Экспертная помощь при неврологических заболеваниях." }
+    ];
 
-    // (Вставь сюда весь массив organizations из моего предыдущего сообщения)
+    function renderOrganizations(filtered) {
+      const container = document.getElementById('organizationsList');
+      container.innerHTML = filtered.map(org => `
+        <div class="card rounded-3xl p-6">
+          <h3 class="text-xl font-semibold mb-2">${org.name}</h3>
+          <p class="text-zinc-400">${org.address} • ${org.city}</p>
+          
+          <div class="flex gap-2 mt-4">
+            <span class="px-4 py-1 text-xs bg-zinc-800 rounded-2xl">${org.spec}</span>
+            <span class="px-4 py-1 text-xs ${org.type === 'gos' ? 'bg-blue-900 text-blue-300' : 'bg-emerald-900 text-emerald-300'} rounded-2xl">
+              ${org.type === 'gos' ? 'Государственная' : 'Частная'}
+            </span>
+          </div>
 
-    function renderOrganizations(filtered) { /* ... */ }
-    function showDetail(id) { /* ... */ }
-    function closeModal() { /* ... */ }
-    function filterOrganizations() { /* ... */ }
+          <div class="mt-6 flex justify-between items-center">
+            <span class="text-emerald-400">★ ${org.rating}</span>
+            <button onclick="showDetail(${org.id})" 
+                    class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-2xl text-sm font-medium">
+              Подробнее
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
 
+    function showDetail(id) {
+      const org = organizations.find(o => o.id === id);
+      if (!org) return;
+
+      document.getElementById('modalContent').innerHTML = `
+        <h2 class="text-2xl font-semibold mb-2">${org.name}</h2>
+        <p class="text-emerald-400 mb-6">${org.city} • ${org.spec}</p>
+        
+        <div class="space-y-4 mb-8">
+          <div><span class="text-zinc-400">Адрес:</span> ${org.address}</div>
+          <div><span class="text-zinc-400">Телефон:</span> ${org.phone}</div>
+        </div>
+        
+        <p class="text-zinc-300 leading-relaxed">${org.description}</p>
+      `;
+
+      document.getElementById('detailModal').classList.remove('hidden');
+      document.getElementById('detailModal').classList.add('flex');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('detailModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function filterOrganizations() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const city = document.getElementById('cityFilter').value;
+      const spec = document.getElementById('specFilter').value;
+
+      let filtered = organizations;
+
+      if (search) filtered = filtered.filter(o => o.name.toLowerCase().includes(search));
+      if (city) filtered = filtered.filter(o => o.city === city);
+      if (spec) filtered = filtered.filter(o => o.spec === spec);
+
+      document.getElementById('resultsCount').textContent = `Найдено: ${filtered.length} организаций`;
+      renderOrganizations(filtered);
+    }
+
+    // Инициализация
     document.addEventListener('DOMContentLoaded', () => {
       renderOrganizations(organizations);
+
       document.getElementById('searchInput').addEventListener('input', filterOrganizations);
       document.getElementById('cityFilter').addEventListener('change', filterOrganizations);
       document.getElementById('specFilter').addEventListener('change', filterOrganizations);
